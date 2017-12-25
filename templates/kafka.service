@@ -8,7 +8,7 @@ User=kafka
 Group=kafka
 Environment=JAVA_HOME={{ hbase_java_home }} CHDIR={{ kafka.configuration.data_dir }} LOG_DIR={{ kafka.configuration.log_path }}/log
 ExecStart={{ kafka_application_path }}/bin/kafka-server-start.sh {{ kafka_application_path }}/config/server.properties
-Restart=on-abort
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
