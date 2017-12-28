@@ -9,6 +9,12 @@
   tags: 
     - kafka
     - kafka_setup
+
+- name: create install dir
+  file: dest=/opt/kafka state=directory owner=kafka group=kafka
+  tags:
+    - kafka
+    - kafka_setup
  
 - set_fact:
     kafka_package_name: kafka_{{ kafka.scala_version }}-{{ kafka.version }}.tgz
