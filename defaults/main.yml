@@ -15,6 +15,7 @@ kafka:
         so_snd_buff_bytes: 102400
         so_rcv_buff_bytes: 102400
         so_request_max_bytes: 104857600
+        msg_max_bytes: 10485760
         data_dir_recovery_threads: 1
         log_retention_hours: 24 
         log_retention_bytes: 1073741824
