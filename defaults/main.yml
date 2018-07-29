@@ -1,4 +1,6 @@
 package_download_path : "/tmp"
+kafka_max_request_size: 10485760
+kafka_replica_fetch_max_bytes: 10485760
 kafka:
     version: 1.0.0
     scala_version: 2.12
