@@ -17,8 +17,8 @@
     - kafka_setup
  
 - set_fact:
-    kafka_package_name: kafka_{{ kafka.scala_version }}-{{ kafka.version }}.tgz
-    kafka_application_path: "{{ kafka.installation_path }}/kafka_{{ kafka.scala_version }}-{{ kafka.version }}"
+    kafka_package_name: kafka_{{ kafka_scala_version }}-{{ kafka_version }}.tgz
+    kafka_application_path: "{{ kafka.installation_path }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}"
   tags: 
     - kafka
     - kafka_installation
@@ -31,17 +31,23 @@
     - kafka_installation
 
 - name: download kafka tar if not downloaded
-  get_url: url={{ kafka.download_mirror }}/{{ kafka.version }}/{{ kafka_package_name }} dest={{ package_download_path }}
+  get_url: url={{ kafka.download_mirror }}/{{ kafka_version }}/{{ kafka_package_name }} dest={{ package_download_path }}
   when: not kafka_package_exists.stat.exists 
   tags: 
     - kafka
     - kafka_installation
 
 - name: unarchive kafka package
-  unarchive: src={{ package_download_path }}/{{ kafka_package_name }} dest={{ kafka.installation_path }} copy=no 
+  unarchive: src={{ package_download_path }}/{{ kafka_package_name }} dest={{ kafka_unarchive_prefix }} copy=no 
   tags: 
     - kafka
     - kafka_installation
+
+- name: create {{ kafka_distr_prefix }}
+  shell: rsync -av --exclude=config/ {{ kafka_unarchive_prefix }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}/ {{ kafka_installation_prefix }}-{{ env_name }}-{{ kafka_scala_version }}-{{ kafka_version }}/ creates="{{ kafka_installation_prefix }}-{{ env_name }}-{{ kafka_scala_version }}-{{ kafka_version }}"
+
+- name: create a -current link
+  file: state=link src={{ kafka_installation_prefix }}-{{ env_name }}-{{ kafka_scala_version }}-{{ kafka_version }} dest={{ kafka_installation_prefix }}-{{ env_name }}-current
 
 - name: delete package downloaded if needed
   file: path={{ package_download_path }}/{{ kafka_package_name }} state=absent
@@ -50,40 +56,216 @@
     - kafka
     - kafka_installation
 
-- name: set kafka data dir
-  file: path={{ kafka.configuration.data_dir }} state=directory owner=kafka group=kafka
+- name: create kafka data dir
+  file: path={{ kafka_data_dir }} state=directory owner=kafka group=kafka
   tags: 
     - kafka
     - kafka_installation
 
 - name: set kafka loggers dir
-  file: path={{ kafka.configuration.log_path }} state=directory owner=kafka group=kafka
+  file: path={{ kafka_log_path }} state=directory owner=kafka group=kafka
   tags:
     - kafka
     - kafka_installation
 
 - name: set kafka log topic dirs
-  file: path={{ kafka.configuration.log_dirs }} state=directory owner=kafka group=kafka
+  file: path={{ kafka_log_dirs }} state=directory owner=kafka group=kafka
   tags:
     - kafka
     - kafka_installation
 
-- name: set kafka configuration
-  template: src=kafka.conf dest={{ kafka_application_path }}/config/server.properties force=yes
+- name: create kafka config dir
+  file: path=/etc/kafka-{{ env_name }} state=directory owner=root group=root
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put server.properties
+  template: src=server.properties dest=/etc/kafka-{{ env_name }}/server.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-console-sink.properties
+  template: src=connect-console-sink.properties dest=/etc/kafka-{{ env_name }}/connect-console-sink.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-console-source.properties
+  template: src=connect-console-source.properties dest=/etc/kafka-{{ env_name }}/connect-console-source.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-distributed.properties
+  template: src=connect-distributed.properties dest=/etc/kafka-{{ env_name }}/connect-distributed.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-file-sink.properties
+  template: src=connect-file-sink.properties dest=/etc/kafka-{{ env_name }}/connect-file-sink.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-file-source.properties
+  template: src=connect-file-source.properties dest=/etc/kafka-{{ env_name }}/connect-file-source.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-log4j.properties
+  template: src=connect-log4j.properties dest=/etc/kafka-{{ env_name }}/connect-log4j.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put connect-standalone.properties
+  template: src=connect-standalone.properties dest=/etc/kafka-{{ env_name }}/connect-standalone.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put consumer.properties
+  template: src=consumer.properties dest=/etc/kafka-{{ env_name }}/consumer.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put log4j.properties
+  template: src=log4j.properties dest=/etc/kafka-{{ env_name }}/log4j.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put producer.properties
+  template: src=producer.properties dest=/etc/kafka-{{ env_name }}/producer.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put tools-log4j.properties
+  template: src=tools-log4j.properties dest=/etc/kafka-{{ env_name }}/tools-log4j.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put zookeeper.properties
+  template: src=zookeeper.properties dest=/etc/kafka-{{ env_name }}/zookeeper.properties
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: create a config dir
+  file: dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config state=directory
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put systemd service unit file for kafka 
+  template: src=kafka.service dest=/etc/systemd/system/kafka-{{ env_name }}.service owner=root group=root mode=644 force=yes
+  notify: systemctl daemon-reload
+  tags:
+    - kafka
+    - kafka_startup
+
+- meta: flush_handlers
+
+- name: link server.properties
+  file: src=/etc/kafka-{{ env_name }}/server.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/server.properties state=link
   notify: restart kafka 
   tags: 
     - kafka
     - kafka_installation
 
-- name: start kafka 
-  template: src=kafka.service dest=/etc/systemd/system/kafka.service owner=root group=root mode=644 force=yes
-  tags:
-    - kafka
-    - kafka_startup
-
-- name: reload systemd daemon 
-  shell: "systemctl daemon-reload"
+- name: link connect-console-sink.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-console-sink.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-console-sink.properties state=link
   notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-console-source.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-console-source.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-console-source.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-distributed.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-distributed.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-distributed.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-file-sink.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-file-sink.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-file-sink.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-file-source.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-file-source.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-file-source.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-log4j.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-log4j.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-log4j.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link connect-standalone.properties
+  file: src=/etc/kafka-{{ env_name }}/connect-standalone.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/connect-standalone.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link consumer.properties
+  file: src=/etc/kafka-{{ env_name }}/consumer.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/consumer.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link log4j.properties
+  file: src=/etc/kafka-{{ env_name }}/log4j.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/log4j.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link producer.properties
+  file: src=/etc/kafka-{{ env_name }}/producer.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/producer.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link tools-log4j.properties
+  file: src=/etc/kafka-{{ env_name }}/tools-log4j.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/tools-log4j.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: link zookeeper.properties
+  file: src=/etc/kafka-{{ env_name }}/zookeeper.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/zookeeper.properties state=link
+  notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: enable and start kafka service 
+  service: name="kafka-{{ env_name }}" state=started enabled=yes
   tags:
     - kafka
     - kafka_startup

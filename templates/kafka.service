@@ -6,9 +6,10 @@ After=network.target
 [Service]
 User=kafka
 Group=kafka
-Environment=JAVA_HOME={{ hbase_java_home }} CHDIR={{ kafka.configuration.data_dir }} LOG_DIR={{ kafka.configuration.log_path }}/log
-ExecStart={{ kafka_application_path }}/bin/kafka-server-start.sh {{ kafka_application_path }}/config/server.properties
+Environment=JAVA_HOME={{ hbase_java_home }} CHDIR={{ kafka_data_dir }} LOG_DIR={{ kafka_log_path }}/log
+ExecStart={{ kafka_installation_prefix }}-{{ env_name }}-current/bin/kafka-server-start.sh {{ kafka_installation_prefix }}-{{ env_name }}-current/config/server.properties
 Restart=always
+RestartSec=40
 
 [Install]
 WantedBy=multi-user.target
