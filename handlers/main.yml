@@ -1,5 +1,7 @@
 - name: restart kafka
-  service: name=kafka-{{ env_name }} state=restarted
+  systemd:
+    name: kafka-{{ env_name }}
+    state: restarted
 
 - name: systemctl daemon-reload
   shell: "systemctl daemon-reload"

@@ -82,6 +82,7 @@
 
 - name: put server.properties
   template: src=server.properties dest=/etc/kafka-{{ env_name }}/server.properties
+  notify: restart kafka
   tags: 
     - kafka
     - kafka_installation
