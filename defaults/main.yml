@@ -22,7 +22,7 @@ kafka:
         so_request_max_bytes: 104857600
         msg_max_bytes: 10485760
         data_dir_recovery_threads: 1
-        log_retention_hours: 24 
+        log_retention_hours: 72
         log_retention_bytes: 1073741824
         log_segment_bytes: 1073741824
         log_retention_check_interval: 300000
