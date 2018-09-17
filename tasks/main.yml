@@ -43,6 +43,9 @@
     - kafka
     - kafka_installation
 
+- name: install rsync
+  apt: name=rsync
+
 - name: create {{ kafka_distr_prefix }}
   shell: rsync -av --exclude=config/ {{ kafka_unarchive_prefix }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}/ {{ kafka_installation_prefix }}-{{ env_name }}-{{ kafka_scala_version }}-{{ kafka_version }}/ creates="{{ kafka_installation_prefix }}-{{ env_name }}-{{ kafka_scala_version }}-{{ kafka_version }}"
 
@@ -261,6 +264,24 @@
 - name: link zookeeper.properties
   file: src=/etc/kafka-{{ env_name }}/zookeeper.properties dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/zookeeper.properties state=link
   notify: restart kafka 
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: download the Prom JMX exporter
+  get_url: url="https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.3.1/jmx_prometheus_javaagent-0.3.1.jar" dest={{ kafka_installation_prefix }}-{{ env_name }}-current/libs/jmx_prometheus_javaagent-0.3.1.jar
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: put "/etc/kafka-{{ env_name }}/jmx_prometheus_javaagent.yaml"
+  template: src=jmx_prometheus_javaagent.yaml dest=/etc/kafka-{{ env_name }}/jmx_prometheus_javaagent.yaml owner=root group=root mode=0644 backup=yes
+  tags: 
+    - kafka
+    - kafka_installation
+
+- name: create {{ kafka_installation_prefix }}-{{ env_name }}-current/config/jmx_prometheus_javaagent.yaml
+  file: state=link src=/etc/kafka-{{ env_name }}/jmx_prometheus_javaagent.yaml dest={{ kafka_installation_prefix }}-{{ env_name }}-current/config/jmx_prometheus_javaagent.yaml
   tags: 
     - kafka
     - kafka_installation

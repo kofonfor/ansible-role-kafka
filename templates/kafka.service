@@ -6,7 +6,10 @@ After=network.target
 [Service]
 User=kafka
 Group=kafka
-Environment=JAVA_HOME={{ hbase_java_home }} CHDIR={{ kafka_data_dir }} LOG_DIR={{ kafka_log_path }}/log
+Environment=JAVA_HOME={{ hbase_java_home }}
+Environment=CHDIR={{ kafka_data_dir }}
+Environment=LOG_DIR={{ kafka_log_path }}/log
+Environment=KAFKA_OPTS=-javaagent:{{ kafka_installation_prefix }}-{{ env_name }}-current/libs/jmx_prometheus_javaagent-0.3.1.jar=9160:{{ kafka_installation_prefix }}-{{ env_name }}-current/config/jmx_prometheus_javaagent.yaml
 ExecStart={{ kafka_installation_prefix }}-{{ env_name }}-current/bin/kafka-server-start.sh {{ kafka_installation_prefix }}-{{ env_name }}-current/config/server.properties
 Restart=always
 RestartSec=40
