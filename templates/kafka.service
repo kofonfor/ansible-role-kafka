@@ -6,6 +6,7 @@ After=network.target
 [Service]
 User=kafka
 Group=kafka
+LimitNOFILE={{ kafka_nofile_limit }} 
 Environment=JAVA_HOME={{ hbase_java_home }}
 Environment=CHDIR={{ kafka_data_dir }}
 Environment=LOG_DIR={{ kafka_log_path }}/log
